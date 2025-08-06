@@ -1,0 +1,486 @@
+WAS 8.5 Installation and FixPack 8.5.5.15 on CLI
+=================================================
+required files
+==============
+agent.installer.linux.gtk.x86_64_1.8.9000.20180313_1417.zip
+WAS_ND_V8.5_1_OF_3.zip
+WAS_ND_V8.5_2_OF_3.zip
+WAS_ND_V8.5_3_OF_3.zip
+8.5.5-WS-WAS-FP015-part1.zip
+8.5.5-WS-WAS-FP015-part2.zip
+8.5.5-WS-WAS-FP015-part3.zip
+
+
+1.unzip the  InstallationManager file execute the command 
+
+./installc -acceptLicense -installationDirectory /opt/IBM/InstallationManager/eclipse -sP
+
+2.unzip ND 
+
+3.go to the path 
+/opt/IBM/InstallationManager/eclipse/tools
+
+4.execute the command in tools
+ ./imcl listAvailablePackages -repositories /media/sf_Documents/WAS/repository.config
+
+5.
+./imcl install com.ibm.websphere.ND.v85_8.5.0.20120501_1108 -repositories /media/sf_Documents/WAS/repository.config -installationDirectory /opt/IBM/WebSphere/AppServer -acceptLicense -sP
+
+6.unzip the fixpack
+
+8.go to the path
+/opt/IBM/InstallationManager/eclipse/tools
+
+9.get the repository from unzip FixPack directory and execute the command in tools
+./imcl listAvailablePackages -repositories /media/sf_Documents/WAS_FX/repository.config
+
+10.add the ND repositorie.
+./imcl install com.ibm.websphere.ND.v85_8.5.5015.20190128_1828 -repositories /media/sf_Documents/WAS_FP/repository.config -installationDirectory /opt/IBM/WebSphere/AppServer -acceptLicense -sP
+
+Installation in user using CLI
+================================
+1.unzip the  InstallationManager file execute the command
+./userinstc -acceptLicense -installationDirectory /home/bandaru/IBM/InstallationManager/eclipse -sP
+
+2.unzip ND
+
+3.go to the path
+/home/user/IBM/InstallationManager/eclipse/tools
+
+4.execute the command in tools
+ ./imcl listAvailablePackages -repositories /home/bandaru/ND/repository.config
+
+5.
+./imcl install com.ibm.websphere.ND.v85_8.5.0.20120501_1108 -repositories /home/user/ND/repository.config -installationDirectory /home/user/IBM/WebSphere/AppServer -acceptLicense -sP
+
+6.unzip the fixpack
+
+7.go to the path
+/opt/IBM/InstallationManager/eclipse/tools
+
+8.execute the command in tools.
+./imcl listAvailablePackages -repositories /home/bandaru/FX/repository.config
+
+9.get the repository from unzip FixPack directory and execute the command in tools
+ ./imcl install com.ibm.websphere.ND.v85_8.5.5015.20190128_1828 -repositories /home/bandaru/FX/repository.config -installationDirectory /home/bandaru/IBM/WebSphere/AppServer -acceptLicense -sP
+
+Creating of standalone(AppSer) profiles
+=======================================
+1.go to the path execute below command 
+/home/bandaru/IBM/WebSphere/AppServer/bin
+
+./manageprofiles.sh -create -profileName AppSer01 -templatePath /home/bandaru/IBM/WebSphere/AppServer/profileTemplates/default/ -enableAdminSecurity true -adminUserName wasadmin -adminPassword sarasu10 -hostName localhost
+
+2.then go to the path 
+/home/bandaru/IBM/WebSphere/AppServer/profiles/AppSer01/bin
+execute this command
+./startServer.sh server1
+
+3.hit on the browser with Administrative console port-->logs-->AboutThisProfile.txt file
+192.168.1.50:9060/admin
+
+4.Checking version
+/home/bandaru/IBM/WebSphere/AppServer/profiles/AppSer01/bin
+./versionInfo.sh                             -----was version
+./managesdk.sh -listAvailable                -----sdk version
+./managesdk.sh -listEnabledProfile -profileName dmgr  -----which sdk version is using the profile
+
+Creating of dmgr profiles.
+==========================
+1.go to the path execute below command
+/home/bandaru/IBM/WebSphere/AppServer/bin
+./manageprofiles.sh -create -profileName dmgr1 -templatePath /home/bandaru/IBM/WebSphere/AppServer/profileTemplates/dmgr/ -enableAdminSecurity true -adminUserName wasadmin -adminPassword sarasu10 -hostName localhost
+
+
+2.then go to the path
+/home/bandaru/IBM/WebSphere/AppServer/profiles/Dmgr01/bin
+execute this command
+./startManager.sh
+
+3.hit on the browser with Administrative console port-->logs-->AboutThisProfile.txt file
+192.168.1.50:9060/admin
+
+federate Appser01 to Dmgr
+=========================
+1.start Dmgr 
+./startManager.sh
+
+2.go to the AppSer path /home/bandaru/IBM/WebSphere/AppServer/profiles/AppSer01/bin
+execute 
+NOTE:give hostname and give SOAP connector port of Dmgr
+
+./addNode.sh localhost 8879
+
+3.Now start the server from same path.
+./startServer server1
+
+4.removing node from dmgr
+./removeNode.sh -profileName Dmgr01
+
+5.sync node with dmgr
+./syncNode.sh hostname soapport
+
+
+JMS
+===
+1.First create BUS go to the 
+service integration -->BUS -->new-->Enter the name for your new bus -->next -->finish
+
+2.Click on the created bus and go to 
+bus members -->add -->Select server, cluster or WebSphere MQ server -->Select the type of message store -->next -->nproperties/portdef.props ext -->finish. And then review -->Synchronize changes with Node
+
+3.Create Queue connection factorie and Queues
+click on Resources -->JMS -->
+  1.Queue connection factories --> select scope (target server)-->new -->select Default messaging provider.
+  -->connection factories name
+  -->JNDI name
+  -->BUS name
+  -->OK
+  -->review -->SyncDmgr01hronize changes 
+2.Queue -->select scope (target server)-->new -->select Default messaging provider.
+  -->Queue name
+  -->JNDI name
+  -->BUS name
+  -->select Queue name (target)
+  -->OK
+  -->review -->Synchronize changes 
+
+To view of delivered messages
+ Buses > Bus1 > Destinations > _SYSTEM.Exception.Destination.wasNode06.S1-Bus1 > Queue points > _SYSTEM.Exception.Destination.wasNode06.S1-Bus1@wasNode06.S1-Bus1 > switch to the Runtime tab >Messages > 15D164E3D39CB9A4_500001 > Message body
+ NOTE:if the application is not hitting add server port in virtual hosts
+changes 
+Environment -->virtual hosts 
+-->click on default_host -->Host Aliases -->new-->give the server port -->ok -->review -->Synchronize changes
+
+Horizental cluster:
+==================
+1. creatr a custom node
+2. edit “vi /etc/hosts” add remort hostname and IP and do the same in remort mechane add our ip and hostname in remort mechane
+eg:192.168.1.22 was.eidikointernal.com was
+ 
+3.add the node with remort dmgr hostname and soap port.
+Ex:./addNode.sh remortHostName remortDmgrSoapPort
+
+JDBC
+====
+JDBC with DB2:
+-------------
+1.Install db2 create a datadbse and connect to it with following command
+ db2start – to start db2
+ db2 create database eidiko – creating database (for createing of sample database run “db2sampl”)
+ db2 list db directory – listing the databases
+ db2 connect to eidiko – connecting to  database
+ NOTE:go to the path /opt/ibm/db2/V11.1/java/ and take  db2jcc.jar file to our was image .
+2.Go to console 
+Resources > JDBC > JDBC providers > select target and click on new
+                   Scope :select server
+                   Database type : db2
+                   Provider type  :DB2 Universal JDBC Driver provider
+                   Implementation type :Connection pool data source
+                   next
+Give the path of file db2jcc.jar taken from the db2 installed image. Ex:/home/was/
+For second  coloem give db2 installation parh ex:  /opt/ibm/db2/V11.1/
+next
+finish
+3.Create Alies for that go to Security > Global security >  Java Authentication and Authorization Service > J2C authentication data   > click on new
+                       Alies : apple
+                       User ID: db2inst1
+                        password:sarasu10
+                         ok ->review -->Synchronize changes.
+4.Now create the datasource click on Data Sources > select target and click on new
+                       Data source name :db2
+                       JNDI name :abc
+                        next
+                        Select an existing JDBC provider :DB2 Universal JDBC Driver provider
+                        next
+                        Driver type :4
+                        Database name :eidiko
+                        Server name :192.168.22.11(ip of db2 system)
+                         next
+                         give the
+                        Component-managed authentication alias :alies which you created
+                        Mapping-configuration alias: none
+                        Container-managed authentication alias : none
+                        next >finish > review -->Synchronize changes ->Test connection.
+
+
+JDBC WITH ORACLE:
+----------------
+1.Install oracle datadbse and connect to it with following command
+             lsnrctl start
+             sqlplus / as sysdba
+             startup;
+NOTE: go to the path /u01/app/oracle/product/19.0.0/dbhome_1/jdbc/lib/ and take  ojdbc8.jar file to our was image.
+  2.Go to console 
+Resources > JDBC > JDBC providers > select target and click on new
+                   Scope :select server            
+                   Database type : oracle
+                   Provider type  :Oracle JDBC Driver 
+                   Implementation type :Connection pool data source
+                   next
+Give the path of file ojdbc8.jar taken from the oracle installed image. Ex:/home/was/
+next
+finish
+3.Create Alies for that go to Security > Global security >  Java Authentication and Authorization Service > J2C authentication data   > click on new
+                       Alies : apple
+                       User ID: SYSTEM
+                        password:sarasu10
+                        ok ->review -->Synchronize changes.
+4.Now create the datasource click on Data Sources > select target and click on new
+                       Data source name :oracle
+                       JNDI name :abc
+                        next
+                        Select an existing JDBC provider:Oracle JDBC Driver 
+                        Implementation type :Connection pool data source
+                        next
+Give the path of file ojdbc8.jar taken from the oracle installed image. Ex:/home/was/
+                        next
+                        URL:jdbc:oracle:thin:@//oracle_image_ip:1521/system
+                         next
+                         give the
+                        Component-managed authentication alias :alies which you created
+                        Mapping-configuration alias: none
+                        Container-managed authentication alias : none
+                        next >finish > review -->Synchronize changes ->Test connection.
+NOTE:For changing file paths go to  Environment ->WebSphere variables -> you can change the paths.
+
+
+LDAP
+1.untar the apacheds-2.0.0.AM26.tar file
+   cd  apacheds-2.0.0.AM26
+   cd bin
+  ./apacheds.sh start
+  ./ apacheds.sh status
+2.Run the ApaceDirectoryStudio in local terminal
+ cd  ApaceDirectoryStudio
+ ./ApaceDirectoryStudio
+IN GUI give 
+  connection name:eidiko
+  Host name:192.168.1.22
+   port:10389  
+   Bind DN:uid=admin,ou=system
+   BindPassword=secret
+   finish
+3.In WAS console go to Security->Global security->click on configer (at down) ->
+and clickAdd repositories(LDAP,custem.etc)
+   select repositorie as LDAP repositorie
+   Driver type : custom
+   Primary host name : IP
+   Port : 10389
+   Bind distinguished name : uid=admin,ou=system
+    Bind password: secret
+    Apply -> review -->Synchronize changes
+    ok
+    It will again ask select repositorie now select 
+    Unique distiguished name of the base :ou=system
+    ok and review -->Synchronize changes
+    stop dmge and restart it
+LINK: https://www.youtube.com/watch?v=1g3zOX6o1dw
+NOTE:we can check the connection by click on LDAP Test Query 
+ 4 .now go to the Useres and Groups -> manage users -> if ldap is successfully you get admin user
+
+5.Assign roles to user click on    Useres and Groups-> Administrative user roles ->add ->selest role ->Search string :admin ->ok ->review -->Synchronize changes
+
+Installation of IHS
+1.unzip  the files and start ./IBMIM and add repository.
+2.click on install and select
+     IBM HTTP Server for Webspher Application Server 
+     WebServer Plug-ins for IBM  Webspher Application  Server
+3.next and accept license next and install
+
+Confilger IHS with WAS
+1.create a webserver in GUI
+server types-> web servers -> new 
+             select node:
+              servername:web1
+               type: IBM HTTP Server
+               next
+               port :80 (for root) 8080(for user)
+               Web server installation location :/opt/IBM/HTTPServer (for root)
+                                                                    /home/user/IBM/HTTPServer(for user)
+               Plug-in installation location :/opt/IBM/WebSphere/Plugins (for root)
+                                                              /home/userIBM/WebSphere/Plugins(for user)
+              next and finish
+               review-> generate plugin ->propagate plugin
+
+2.Now go to the path /opt/IBM/HTTPServer/conf/ and eidit http.conf file add two lines in last
+   LoadModule was_ap22_module /opt/IBM/HTTPServer/modules/mod_was_ap22_http.so
+   WebspherePluginConfig /opt/IBM/WebSphere/Plugins/config/web1/plugin-cfg.xml
+NOTE:in web1 replace with your webserver
+
+4.Now go to the path /opt/IBM/HTTPServer/conf/ and eidit admin.conf file 
+line no 7 and last line of file : replace admin port as 8008
+line no 139 and 140 user and group : bandaru (for root install)
+
+3.go to the path /opt/IBM/HTTPServer/bin and run to check syntex is correct
+       ./apachectl -t    ->check syntex is correct
+        ./apachectl -k start ->to start http server
+        ./adminctl start ->to get ihs console Ex:ip:80
+
+4.start the webserver in gui
+
+
+          
+REMOTE IHS
+1.create unmanaged node 
+System administration -> node - > add node -> Unmanaged node  -> next 
+ name: unmanaged_node1
+ hostname: IP of remort IHS user 
+
+2.create webserver 
+servers -> servers typs -> web server -> new -> 
+Select node :unmanaged_node1
+Server name :wed2
+type :IBM HTTP server
+next
+
+3.    port :80 (for root) 8080(for user)
+               Web server installation location :/opt/IBM/HTTPServer (for root)
+                                                                    /home/user/IBM/HTTPServer(for user)
+               Plug-in installation location :/opt/IBM/WebSphere/Plugins (for root)
+                                                              /home/userIBM/WebSphere/Plugins(for user)
+               adminstration server port:8008
+               username:wasadmin	
+               password:sarasu10
+              next and finish
+               review-> generate plugin ->propagate plugin
+NOTE : menction the path and port of remort IHS user or root
+
+4.go to the path /home/bandaru/IBM/WebSphere/AppServer/profiles/Dmgr01/config/cells/WASCell01/nodes/wed2/servers/web2/ plugin-cfg.xml 
+and send the directory web2 to the remort ihs system path /opt/IBM/WebSphere/Plugins/config/
+ then give full parimession to plugin-cfg.xml
+ex: scp -r web2/ root@192.168.1.151:/opt/IBM/WebSphere/Plugins/config/
+
+5.Now go to the path /opt/IBM/HTTPServer/conf/ and eidit http.conf file add two lines in last.
+ LoadModule was_ap22_module /opt/IBM/HTTPServer/modules/mod_was_ap22_http.so
+  WebspherePluginConfig /opt/IBM/WebSphere/Plugins/config/web2/plugin-cfg.xml
+
+6.go to the path /opt/IBM/HTTPServer/bin and run to check syntex is correct
+       ./apachectl -t    ->check syntex is correct
+        ./apachectl -k start ->to start http server
+        ./adminctl start ->to get ihs console Ex:ip:80
+         ./htpasswd -b ../conf/admin.passwd wasadmin sarasu10
+  
+DELETE OF PROFILE:
+stop the node
+go to the path /opt/IBM/WebSphere/AppServer/bin and execute
+./manageprofiles.sh -delete -profileName node1
+./manageprofiles.sh  -validateRegistry
+./manageprofile.sh  -validateAndUpdateRegistry
+and then go to path /opt/IBM/WebSphere/AppServer/profiles/
+rm -rf node1
+
+BACKUP OF PROFILE
+stop the node
+./manageprofiles.sh  -backupProfile -profileName node1 -backupFile /opt/IBM/backup.zip(path to store the backup file)
+
+LOG FILES:
+IHS: HTTPServer/logs
+access_log        admin_error.log  adminSocket    cgisock.4905  httpd.pid    siddport
+admin_access_log  admin.pid        cgisock.18606  error_log     postinstall
+WebSphere/Plugins/logs/webserver name
+http_plugin.log
+
+WAS LOGS:
+/home/bandaru/IBM/WebSphere/AppServer/logs/manageprofiles
+create.log  Custom01  Custom01_create.log  Dmgr01  Dmgr01_create.log  pmt.log
+/home/bandaru/IBM/WebSphere/AppServer/logs/postinstall
+fixpack  postinstallerConfigActions1702917061526.log  postinstall.log
+dmgr logs:
+/home/bandaru/IBM/WebSphere/AppServer/profiles/Dmgr01/logs/dmgr
+btrace.1  native_stderr.log  objects          SystemErr.log        SystemOut.log
+dmgr.pid  native_stdout.log  startServer.log  SystemErr.log.owner  SystemOut.log.owner
+node logs:
+/home/bandaru/IBM/WebSphere/AppServer/profiles/Custom01/logs
+AboutThisProfile.txt  addNode.log  ffdc  nodeagent  S1  web1  wsadminListener.out  wsadmin.traceout  wsadmin.valout
+nodeagent logs:
+/home/bandaru/IBM/WebSphere/AppServer/profiles/Custom01/logs/nodeagent
+btrace.1       native_stderr.log  nodeagent.pid  startServer.log  SystemErr.log.owner  SystemOut.log.owner
+monitor.state  native_stdout.log  objects        SystemErr.log    SystemOut.log
+server logs:
+/home/bandaru/IBM/WebSphere/AppServer/profiles/Custom01/logs/S1
+btrace.1           native_stdout.log  S1.pid         SystemErr.log.owner  SystemOut.log.owner
+native_stderr.log  objects            SystemErr.log  SystemOut.log
+main config file:
+/home/bandaru/IBM/WebSphere/AppServer/profiles/Dmgr01/config/cells/WASCell01/nodes/WASNode01
+serverindex.xml
+
+VIEW OF HEAP SIZE:
+click on server-> Java and Process Management -> Process definition > Java Virtual Machine
+
+HEAP DUMP
+Troubleshooting-> Java dumps and cores
+
+synchronization of node:
+./syncNode.sh hostname port
+
+HEAP  IN CLI:
+/home/bandaru/IBM/WebSphere/AppServer/profiles/Dmgr01/bin
+./wsadmin.sh
+set jvm [$AdminControl completeObjectName type=JVM,process=S1,*]
+$AdminControl invoke $jvm generateHeapDump
+
+THREAD DUMP IN CLI:
+kill -3 pid
+
+SSL for ihs_v9:
+./gskcapicmd -keydb -create -db ./key.kdb -pw sarasu10 -stash
+
+CREATION OF SCEMA IN ORACLE DB
+===============================
+run this commands in oracle db
+sqlplus / as sysdba
+create user sudhakar identified by sarasu10;
+alter session set "_oracle_script"=true;
+create user sudhakar identified by sarasu10;
+grant dba to sudhakar;
+commit;
+
+Creation of tables:
+====================
+after compleat run the command in AppServer/bin
+./sibDDLGenerator.sh -system oracle -schema sudhakar -database orcl -statementend ";" > sudhakar.sql
+ scp the file sudhakar.sql to oracledb path 
+/u01/app/oracle/product/19.0.0/dbhome_1/demo/schema
+then run command in oracledb
+sqlplus / as sysdba
+@/u01/app/oracle/product/19.0.0/dbhome_1/demo/schema/sudhakar.sql
+
+CREATION OF SCHEMA IN DB2
+=========================
+run the commands 
+db2 => create schema mavan
+run the command in AppServer/bin
+./sibDDLGenerator.sh -system db2 -schema mavan -user db2inst1 -database eidiko -statementend ";" > mavan.sql
+scp the file sudhakar.sql to db2db path 
+run this command in db2db
+db2 -tvf mavan.sql
+
+WSADMIN TOOL:
+============
+./wsadmin.sh  -conntype SOAP -host git -port 8879 -user wasadmin -password sarasu10 -f /home/bandaru/one.py
+NOTE: in one.py file in last write this line "AdminConfig.save()" to save
+
+INSTALLATION OF NGINX
+=====================
+sudo yum update ca-certificates
+wget https://nginx.org/keys/nginx_signing.key
+sudo rpm --import nginx_signing.key
+sudo yum install -y nginx
+log_path :/var/log/nginx
+access.log  error.log
+
+systemctl start nginx
+
+
+linux trouble shoot
+===================
+systemctl stop firewalld
+apt-get install openssh-server
+
+FIX PACK appling backup directorys (user installation)
+==================================
+IIM Agent data location   /home/wasadmin/var/ibm/InstallationManager
+IIM Shared resources directory     /home/wasadmin/IBM/IMShared
+IIM Installation Manager Registry File  home/wasadmin/etc/.ibm/registry/InstallationManager.dat
+IIM install directory    /home/wasadmin/IBM/Websphere/AppServer
